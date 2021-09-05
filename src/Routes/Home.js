@@ -1,62 +1,70 @@
-import { dbService } from 'fBase';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { dbService } from "../fBase";
+import Nweet from 'Components/Nweet';
 
-const Home = ({userObj}) => {
-    const [twitt, setTwitt] = useState("")
-    const [ntwitts, setNtwitts] = useState([]);
+const Home = ({ userObj }) => {
+  const [ nweet, setNweet ] = useState("");
+  const [ nweets, setNtweets ] = useState([]);
+
+  const LoadNweets = async() => {
+    const dbNweets = await dbService.collection("nweets").get()
+    dbNweets.forEach( document => {
+      const nweetObject = {
+        ...document.data(),
+        id: document.id,
+      }
+      setNtweets( (prev) => [...prev, nweetObject])
+    })
+  }
+
+  useEffect( () => {
+    LoadNweets();
+    dbService.collection("nweets").orderBy("createdAt","desc").onSnapshot( snapshot => {
+      const nweetArray = snapshot.docs.map( doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      setNtweets(nweetArray)
+    })
+
+  }, [])
+
+  const onSubmit = async (event) => {
+    event.preventDefault();
+    await dbService.collection("nweets").add({
+      text: nweet,
+      createdAt: Date.now(),
+      user: userObj.uid,
+    });
+    setNweet("");
+  };
+  const onChange = (event) => {
+    const {
+      target: { value },
+    } = event;
+    setNweet(value);
+  };
+
+  return (
+    <div>
+      <form onSubmit={onSubmit}>
+        <input
+          value={nweet}
+          onChange={onChange}
+          type="text"
+          placeholder="What's on your mind?"
+          maxLength={120}
+        />
+        <input type="submit" value="Nweet" />
+      </form>
     
-    const getNwitts = async () => {
-        console.log(userObj.uid)
-        const dbTwitts = await dbService.collection("twitts").get();
-        dbTwitts.forEach( document => {
-            const ntwittsObject = {
-                ...document.data(),
-                id: document.id
-            }
-            setNtwitts( (prev) => [ntwittsObject, ...prev])
-        })
-    }
+      <div>
+        {nweets && nweets.map( nweet => (
+          <Nweet key={nweet.id} nweetObj={nweet} isOwner={nweet.user === userObj.uid} />
+        ))}
+      </div>
 
-    useEffect(() => {
-        getNwitts()
-    }, [])
-
-    const onChange = (event) => {
-        const { target : {value} } = event;
-        setTwitt(value)
-    }
-
-    const onSubmit = async (event) => {
-        event.preventDefault();
-        await dbService.collection("twitts").add({
-            text: twitt,
-            createdAt: Date.now(),
-        })
-        setTwitt("")
-    }
-
-    return(
-        <div>
-            <form onSubmit={onSubmit}>
-                <input 
-                    value={twitt} 
-                    type="text" 
-                    onChange={onChange} 
-                    placeholder="What is on your mind?" 
-                    maxLength="120" />
-                <input 
-                    type="submit" 
-                    value="Twitt" />
-            </form>
-        
-            <div>
-                {ntwitts.map( (ntwitt) => (
-                    <div key={ntwitt.id}>
-                        <h4>{ntwitt.twitt}</h4>
-                    </div>
-                    ))}
-            </div>
-        </div>
-    )
-}
-export default Home
+    </div>
+  );
+};
+export default Home;
