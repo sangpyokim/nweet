@@ -35,7 +35,6 @@ const Auth = () => {
         }
     }
 
-
     const toggleAccount = () => setNewAccount(prev => !prev)
     const onSocialClick = async (event) =>{
         const { target: { name } } = event;
@@ -47,7 +46,6 @@ const Auth = () => {
                 provider = new firebaseInstance.auth.GithubAuthProvider();
         }
         const data = await authService.signInWithPopup(provider)
-        console.log(data)
     }
 
     return(
