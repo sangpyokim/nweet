@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { dbService } from "../fBase";
+import { dbService, storageService } from "../fBase";
 import Nweet from 'Components/Nweet';
+import { v4 as uuidv4 } from 'uuid';
 
 const Home = ({ userObj }) => {
   const [ nweet, setNweet ] = useState("");
@@ -32,12 +33,21 @@ const Home = ({ userObj }) => {
 
   const onSubmit = async (event) => {
     event.preventDefault();
-    await dbService.collection("nweets").add({
+    let attachmentUrl = "";
+    if (attachment !== "") {
+      const fileRef = storageService.ref().child(`${userObj.uid}/${uuidv4()}`)
+      const response = await fileRef.putString(attachment, "data_url")
+      attachmentUrl = await response.ref.getDownloadURL();
+    }
+    const nweetObj = {
       text: nweet,
       createdAt: Date.now(),
       user: userObj.uid,
-    });
+      attachmentUrl,
+    }
+    await dbService.collection("nweets").add(nweetObj);
     setNweet("");
+    setAttachment("");
   };
   const onChange = (event) => {
     const {
@@ -60,6 +70,7 @@ const Home = ({ userObj }) => {
 
   const onClickClearPhoto = () => setAttachment("")
 
+
   return (
     <div>
       <form onSubmit={onSubmit}>
@@ -74,7 +85,7 @@ const Home = ({ userObj }) => {
         <input type="submit" value="Nweet" />
         {attachment && (
           <div>
-            <img src={attachment} width="150px" height="150px"/>
+            <img alt="#" src={attachment} width="150px" height="150px"/>
             <button onClick={onClickClearPhoto} >Clear</button>
           </div> 
           )}
